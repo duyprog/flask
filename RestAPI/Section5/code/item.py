@@ -39,7 +39,7 @@ class Item(Resource):
         connection = sqlite3.connect('data.db')
         cursor = connection.cursor()
         
-        query = 'UPDATE items SET price=? WHERE name = ?'
+        query = 'UPDATE items SET price=? WHERE name=?'
         cursor.execute(query, (item['price'], item['name']))
         
         connection.commit() 
@@ -62,27 +62,28 @@ class Item(Resource):
 
         data = Item.parser.parse_args()
         
-        item = {'name': name, 'price': data['name']}
+        item = {'name': name, 'price': data['price']}
         self.insert(item)
         return item
-        
+
+    @jwt_required()    
     def put(self, name): 
         data = Item.parser.parse_args() 
          
-        update_item = {'name': name, 'price': data['price']}
+        updated_item = {'name': name, 'price': data['price']}
         item = self.find_by_name(name)
 
         if item is None: 
             try: 
-                Item.insert(update_item)
+                self.insert(updated_item)
             except:
                 return {'message': 'An error occurred inserting the item'}
         else: 
             try: 
-                Item.update(update_item)
+                self.update(updated_item)
             except: 
                 return {'message': 'An error occurred inserting the item'} 
-        return update_item
+        return updated_item
 
 
     @jwt_required()
@@ -102,8 +103,20 @@ class Item(Resource):
 
     
 
-# pass
+pass
 
-# class ItemList(Resource):
-#     def get(self):
-#         return {'item': items}
+class ItemList(Resource):
+    def get(self):
+        connection = sqlite3.connect('data.db')
+        cursor = connection.cursor() 
+        items = [] 
+
+        query = 'SELECT * FROM items'
+        result = cursor.execute(query)
+        for row in result: 
+            items.append({'name': row[0], 'price': row[1]})
+
+        connection.commit() 
+        connection.close()
+
+        return {'items': items}, 200

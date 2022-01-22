@@ -5,8 +5,7 @@ from flask_jwt import JWT
 
 from security import authenticate, identity
 from user import UserRegister
-from item import Item
-# , ItemList
+from item import Item, ItemList
 # pip install Flask_RESTFul
 # pip install Flask_JWT
 
@@ -21,6 +20,6 @@ jwt = JWT(app, authenticate, identity) # create a new endpoint /auth
 # It will use JWT token to get the user id that means the user was authenticated, JWT token is valid 
 
 api.add_resource(Item, '/item/<string:name>')
-# api.add_resource(ItemList, '/items')
+api.add_resource(ItemList, '/items')
 api.add_resource(UserRegister, '/register')
 app.run(port=5000,debug=True) # Debug de show error message 
