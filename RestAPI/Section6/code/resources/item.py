@@ -15,74 +15,54 @@ class Item(Resource):
     @jwt_required() # must authenticate before call get method, when test api, modify content-type in header tab to application/json
     def get(self, name):
         item = ItemModel.find_by_name(name)
-
         if item: 
-            return item, 200
+            return item.to_json(), 200
         return {'message': 'Item not found'}, 404 
 
 
     @jwt_required()
     def post(self, name):
         if ItemModel.find_by_name(name):
-            return {'message': 'Item is already exists !'}
+            return {'message': 'Item is already exists !'}, 400
 
         data = Item.parser.parse_args()
         
-        item = {'name': name, 'price': data['price']}
-        ItemModel.insert(item)
-        return item
+        item = ItemModel(name, data['price'])
+        
+        try: 
+            item.save_to_db() 
+        except: 
+            return {'message': 'An error occured inserting item'}
+        
+        return item.to_json()
 
     @jwt_required()    
     def put(self, name): 
         data = Item.parser.parse_args() 
          
-        updated_item = {'name': name, 'price': data['price']}
-        item = ItemModel.find_by_name(name)
+        item = ItemModel.find_by_name(name) 
 
-        if item is None: 
-            try: 
-                ItemModel.insert(updated_item)
-            except:
-                return {'message': 'An error occurred inserting the item'}
-        else: 
-            try: 
-                ItemModel.update(updated_item)
-            except: 
-                return {'message': 'An error occurred inserting the item'} 
-        return updated_item
+        if item:
+            item.price = data['price']
+        else:
+            item = ItemModel(name, **data)
 
+        item.save_to_db()
+
+        return item.to_json()
 
     @jwt_required()
     def delete(self, name):
-        if ItemModel.find_by_name(name):
-            connection = sqlite3.connect('data.db')
-            cursor = connection.cursor() 
-
-            query = 'DELETE FROM items WHERE name=?'
-            cursor.execute(query, (name,))
-            connection.commit()
-            connection.close()
-
-            return {'message': 'Item deleted'}, 200
-
-        return {'message': 'Item not found'}, 404
-
-    
-
+        item = ItemModel.find_by_name(name)
+        if item: 
+            item.delete_from_db()
+            return {'message': 'Item deleted'}
+        else:
+            return {'message': 'Item not found'}, 404
 pass
+
 
 class ItemList(Resource):
     def get(self):
-        connection = sqlite3.connect('data.db')
-        cursor = connection.cursor() 
-        items = [] 
-
-        query = 'SELECT * FROM items'
-        result = cursor.execute(query)
-        for row in result: 
-            items.append({'name': row[0], 'price': row[1]})
-
-        connection.commit() 
-        connection.close()
-
-        return {'items': items}, 200
+        # return {'items': list(map(lambda item: item.to_json(), ItemModel.query.all()))}, 200
+        return {'items': [item.to_json() for item in ItemModel.query.all()]}, 200
